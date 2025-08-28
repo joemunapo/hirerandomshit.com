@@ -1,0 +1,16 @@
+{
+  "project": "HireRandomShit.com",
+  "location": "Mutare, Zimbabwe",
+  "budget_alert_usd": 50,
+  "time_alert_hours": 4,
+  "ads_policy": "Avoid profanity in ad copy even if domain is edgy",
+  "payment_rails": ["USD cash", "EcoCash", "InnBucks"],
+  "web_first": true,
+  "ui_style": "Gumroad-inspired simplicity (Laravel + Filament)",
+  "token_saving": [
+    "Read filenames first",
+    "Only open the latest diary section",
+    "Avoid images; use captions/filenames",
+    "Prefer existing summaries"
+  ]
+}

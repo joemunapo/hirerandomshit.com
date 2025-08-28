@@ -1,0 +1,16 @@
+{
+  "title": "string",
+  "id": "string",
+  "type": "task | rfc | research | decision",
+  "why_now": "string",
+  "definition_of_done": ["string"],
+  "inputs": ["path-or-link"],
+  "outputs": ["path-or-link"],
+  "estimate_hours": 0,
+  "owner": "joe | ai",
+  "labels": ["priority:p1","area:product","status:todo"],
+  "deps": ["<task-id>"],
+  "evidence_slots": ["evidence/<YYYY-MM>/<slug>-*.png"],
+  "reviewer": "ai",
+  "due": "YYYY-MM-DD"
+}

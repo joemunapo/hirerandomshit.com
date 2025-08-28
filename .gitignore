@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules
+dist
+
+# Python
+__pycache__/
+
+# Env & secrets
+.env
+.env.*
+
+# Build artifacts
+*.log
+*.cache
+*.tmp
+
+# IDE
+.vscode/
+.idea/
