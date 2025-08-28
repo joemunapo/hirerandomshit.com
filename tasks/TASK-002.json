@@ -1,0 +1,35 @@
+{
+  "title": "Bootstrap Laravel + Filament and ship a Gumroad-style landing page",
+  "id": "TASK-002",
+  "type": "task",
+  "why_now": "We need the foundation of the platform and a clean landing page to capture interest while core features are being built.",
+  "definition_of_done": [
+    "New Laravel project initialized (PHP 8.3+), repo connected",
+    "Filament v3 installed at /admin with working login",
+    "Laravel Breeze installed for user auth (email + password)",
+    "Tailwind configured with Gumroad-like theme (clean typography, muted palette)",
+    "Public landing at / with hero, problem/value, categories, CTA (Join Waitlist), email capture stored in DB",
+    "Basic pages: /about, /contact (form → DB + stub mail)",
+    ".env.example updated with local config, README updated with setup steps",
+    "Evidence screenshots saved under /evidence/2025-08/landing-*.png and decision logged"
+  ],
+  "inputs": [
+    "docs/charter/PROJECT_CHARTER.md",
+    "docs/rfc/0001-mvp.md",
+    "ai/manager_config.json"
+  ],
+  "outputs": [
+    "README.md (updated Quick Start + dev notes)",
+    "logs/decision-log.md",
+    "src/ (Laravel project code)",
+    "database/migrations/* (waitlist + contact tables)",
+    "resources/views/landing.blade.php"
+  ],
+  "estimate_hours": 4,
+  "owner": "joe",
+  "labels": ["priority:p1", "area:web-ui", "area:backend", "status:todo"],
+  "deps": ["TASK-001"],
+  "evidence_slots": ["evidence/2025-08/landing-*.png"],
+  "reviewer": "ai",
+  "due": "2025-09-01"
+}
