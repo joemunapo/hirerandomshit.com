@@ -1,0 +1,29 @@
+{
+  "title": "Register hirerandomshit.com and set up Cloudflare + base DNS",
+  "id": "TASK-001",
+  "type": "task",
+  "why_now": "We need a live domain and email to anchor the MVP landing page.",
+  "definition_of_done": [
+    "Domain purchased and nameservers pointed to Cloudflare",
+    "Cloudflare DNS: A/AAAA for root, CNAME for www → root",
+    "TXT records for SPF + ownership verification added",
+    "Forwarder for hello@hirerandomshit.com created",
+    "Evidence screenshots saved under /evidence/2025-08/domain-dns-*.png",
+    "Decision logged in /logs/decision-log.md"
+  ],
+  "inputs": [
+    "/evidence/2025-08/domain-availability.png",
+    "ai/manager_config.json"
+  ],
+  "outputs": [
+    "/logs/decision-log.md",
+    "/docs/rfc/0003-landing-stack.md"
+  ],
+  "estimate_hours": 1,
+  "owner": "joe",
+  "labels": ["priority:p1", "area:ops", "status:todo"],
+  "deps": [],
+  "evidence_slots": ["evidence/2025-08/domain-dns-*.png"],
+  "reviewer": "ai",
+  "due": "2025-08-30"
+}

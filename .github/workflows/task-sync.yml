@@ -1,0 +1,40 @@
+name: Sync Tasks to Issues
+
+on:
+  push:
+    paths:
+      - 'tasks/*.json'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Read tasks
+        id: read
+        run: |
+          for file in tasks/*.json; do
+            title=$(jq -r '.title' "$file")
+            id=$(jq -r '.id' "$file")
+            body=$(cat "$file" | jq -r tostring)
+            
+            echo "Creating or updating issue for $id - $title"
+            
+            # Try to find existing issue
+            issue=$(gh issue list --json number,title --jq ".[] | select(.title|test(\"$id\")) | .number")
+            
+            if [ -z "$issue" ]; then
+              gh issue create \
+                --title "$id – $title" \
+                --body "TaskSpec:\n\`\`\`json\n$body\n\`\`\`" \
+                --label "status:todo"
+            else
+              gh issue edit $issue \
+                --title "$id – $title" \
+                --body "TaskSpec:\n\`\`\`json\n$body\n\`\`\`"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
