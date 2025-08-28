@@ -1,5 +1,8 @@
 # HireRandomShit – AI Manager Repo
 
+> **The hustle platform for Zimbabwe.**  
+> Hire random shit — tools, gigs, services — with escrow, reviews, and a Gumroad-inspired web interface.
+
 This repo is the **single source of truth** for the AI Project Manager that guides the HireRandomShit.com build.
 
 ---
