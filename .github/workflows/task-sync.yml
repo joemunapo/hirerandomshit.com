@@ -5,6 +5,10 @@ on:
     paths:
       - 'tasks/*.json'
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -12,29 +16,58 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Read tasks
-        id: read
-        run: |
-          for file in tasks/*.json; do
-            title=$(jq -r '.title' "$file")
-            id=$(jq -r '.id' "$file")
-            body=$(cat "$file" | jq -r tostring)
-            
-            echo "Creating or updating issue for $id - $title"
-            
-            # Try to find existing issue
-            issue=$(gh issue list --json number,title --jq ".[] | select(.title|test(\"$id\")) | .number")
-            
-            if [ -z "$issue" ]; then
-              gh issue create \
-                --title "$id – $title" \
-                --body "TaskSpec:\n\`\`\`json\n$body\n\`\`\`" \
-                --label "status:todo"
-            else
-              gh issue edit $issue \
-                --title "$id – $title" \
-                --body "TaskSpec:\n\`\`\`json\n$body\n\`\`\`"
-            fi
-          done
+      - name: Setup GH CLI auth
+        run: gh auth setup-git
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync /tasks/*.json -> Issues
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(tasks/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No task JSON files found. Exiting."
+            exit 0
+          fi
+
+          # helper: ensure a label exists (idempotent)
+          ensure_label () {
+            local label="$1"
+            if [ -z "$label" ]; then return; fi
+            # if not present, create it (default color gray)
+            if ! gh label list --limit 200 --json name -q '.[] | select(.name=="'"$label"'")' | grep -q .; then
+              gh label create "$label" --color '6e7781' || true
+            fi
+          }
+
+          for file in "${files[@]}"; do
+            echo "Processing $file"
+            title=$(jq -r '.title' "$file")
+            id=$(jq -r '.id' "$file")
+            labels=$(jq -r '.labels[]?' "$file" | tr '\n' ',' | sed 's/,$//')
+            body_json=$(jq -c '.' "$file")
+
+            # Ensure labels exist
+            IFS=',' read -ra arr <<< "$labels"
+            for l in "${arr[@]}"; do ensure_label "$l"; done
+
+            # Try find an existing issue by ID in title
+            issue_number=$(gh issue list --state all --json number,title -q '.[] | select(.title | test("^'"$id"'\\b")) | .number' | head -n1)
+
+            if [ -z "$issue_number" ]; then
+              echo "Creating new issue for $id"
+              gh issue create \
+                --title "$id – $title" \
+                --label "$labels" \
+                --body "$(printf 'TaskSpec:\n```json\n%s\n```\n' "$body_json")"
+            else
+              echo "Updating issue #$issue_number for $id"
+              gh issue edit "$issue_number" \
+                --title "$id – $title" \
+                --add-label "$labels" \
+                --body "$(printf 'TaskSpec:\n```json\n%s\n```\n' "$body_json")"
+            fi
+          done
