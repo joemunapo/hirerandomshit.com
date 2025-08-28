@@ -21,7 +21,7 @@
   ],
   "estimate_hours": 1,
   "owner": "joe",
-  "labels": ["priority:p1", "area:ops", "status:todo"],
+  "labels": ["status:todo", "priority:p1", "area:ops"],
   "deps": [],
   "evidence_slots": ["evidence/2025-08/domain-dns-*.png"],
   "reviewer": "ai",

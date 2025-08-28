@@ -16,58 +16,88 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup GH CLI auth
-        run: gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Sync /tasks/*.json -> Issues
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          shopt -s nullglob
-          files=(tasks/*.json)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No task JSON files found. Exiting."
-            exit 0
-          fi
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
 
-          # helper: ensure a label exists (idempotent)
-          ensure_label () {
-            local label="$1"
-            if [ -z "$label" ]; then return; fi
-            # if not present, create it (default color gray)
-            if ! gh label list --limit 200 --json name -q '.[] | select(.name=="'"$label"'")' | grep -q .; then
-              gh label create "$label" --color '6e7781' || true
-            fi
-          }
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
 
-          for file in "${files[@]}"; do
-            echo "Processing $file"
-            title=$(jq -r '.title' "$file")
-            id=$(jq -r '.id' "$file")
-            labels=$(jq -r '.labels[]?' "$file" | tr '\n' ',' | sed 's/,$//')
-            body_json=$(jq -c '.' "$file")
+            const tasksDir = path.join(process.cwd(), 'tasks');
+            if (!fs.existsSync(tasksDir)) {
+              core.info('No tasks/ directory. Nothing to sync.');
+              return;
+            }
 
-            # Ensure labels exist
-            IFS=',' read -ra arr <<< "$labels"
-            for l in "${arr[@]}"; do ensure_label "$l"; done
+            const files = fs.readdirSync(tasksDir).filter(f => f.endsWith('.json'));
+            if (files.length === 0) {
+              core.info('No task JSON files found. Nothing to sync.');
+              return;
+            }
 
-            # Try find an existing issue by ID in title
-            issue_number=$(gh issue list --state all --json number,title -q '.[] | select(.title | test("^'"$id"'\\b")) | .number' | head -n1)
+            // Ensure a label exists (idempotent)
+            async function ensureLabel(name) {
+              if (!name) return;
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (e) {
+                // create if 404
+                await github.rest.issues.createLabel({
+                  owner, repo, name,
+                  color: '6e7781',
+                  description: 'auto-created by task-sync'
+                });
+              }
+            }
 
-            if [ -z "$issue_number" ]; then
-              echo "Creating new issue for $id"
-              gh issue create \
-                --title "$id – $title" \
-                --label "$labels" \
-                --body "$(printf 'TaskSpec:\n```json\n%s\n```\n' "$body_json")"
-            else
-              echo "Updating issue #$issue_number for $id"
-              gh issue edit "$issue_number" \
-                --title "$id – $title" \
-                --add-label "$labels" \
-                --body "$(printf 'TaskSpec:\n```json\n%s\n```\n' "$body_json")"
-            fi
-          done
+            // Create or update an issue for a TaskSpec
+            async function upsertIssue(task) {
+              const titleText = `${task.id} – ${task.title}`;
+              const body = `TaskSpec:\n\`\`\`json\n${JSON.stringify(task, null, 2)}\n\`\`\`\n`;
+
+              const q = `repo:${owner}/${repo} in:title "${task.id}"`;
+              const search = await github.rest.search.issuesAndPullRequests({ q, per_page: 10 });
+              let issue = search.data.items.find(i => i.title.startsWith(task.id));
+
+              // Ensure labels exist
+              const labels = Array.isArray(task.labels) ? task.labels : [];
+              for (const l of labels) await ensureLabel(l);
+
+              if (!issue) {
+                const created = await github.rest.issues.create({
+                  owner, repo, title: titleText, body, labels
+                });
+                core.info(`Created issue #${created.data.number} for ${task.id}`);
+              } else {
+                await github.rest.issues.update({
+                  owner, repo, issue_number: issue.number,
+                  title: titleText, body
+                });
+                if (labels.length) {
+                  await github.rest.issues.addLabels({
+                    owner, repo, issue_number: issue.number,
+                    labels
+                  });
+                }
+                core.info(`Updated issue #${issue.number} for ${task.id}`);
+              }
+            }
+
+            for (const file of files) {
+              const full = path.join(tasksDir, file);
+              try {
+                const raw = fs.readFileSync(full, 'utf8');
+                const task = JSON.parse(raw);
+
+                if (!task.id || !task.title) {
+                  core.warning(`Skipping ${file}: missing id or title`);
+                  continue;
+                }
+                await upsertIssue(task);
+              } catch (err) {
+                core.setFailed(`Failed processing ${file}: ${err.message}`);
+              }
+            }
