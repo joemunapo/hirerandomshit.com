@@ -1,0 +1,70 @@
+{
+  "id": "WEB-001",
+  "title": "Public Landing Page (Filament + Tailwind)",
+  "type": "feature",
+  "priority": "P0",
+  "owner": "web",
+  "description": "Implement a minimal, fast landing page using Tailwind and Filament v3 components. Includes header with brand, category links to /listings?category={slug}, CTA 'LIST ITEM', Help modal, Featured listings grid, Stats (totals), Testimonials, and Footer. Clicking a listing requires registration/login.",
+  "repo": "hiringrnd/hirerandomshit",
+  "branch": "feat/landing-page-v1",
+  "scope": {
+    "routes": [
+      { "method": "GET", "path": "/", "handler": "App\\Http\\Livewire\\Landing\\Home" },
+      { "method": "GET", "path": "/listings", "handler": "App\\Http\\Livewire\\Listing\\Index" },
+      { "method": "GET", "path": "/listings/{slug}", "handler": "App\\Http\\Livewire\\Listing\\Show", "auth": "required" }
+    ],
+    "models_used": ["Category", "Listing", "Transaction", "User", "Testimonial"],
+    "queries": [
+      "Featured listings: Listing::query()->published()->featured()->latest()->take(8)",
+      "Stats: totals via cached aggregates (counts + sum of escrow released)",
+      "Categories: Category::query()->orderBy('name')->get()",
+      "Testimonials: Testimonial::published()->latest()->take(6)"
+    ],
+    "ui_blocks": [
+      "Header (brand, categories, LIST ITEM, Help ?)",
+      "Hero (one-liner + search input, optional)",
+      "Featured Grid",
+      "Stats Strip",
+      "Testimonials",
+      "Footer"
+    ]
+  },
+  "deliverables": [
+    "Responsive landing page with all sections",
+    "Auth gate on listing detail (redirect to /register if guest)",
+    "Help modal content scaffolded",
+    "Caching for stats (60s) and featured (300s)"
+  ],
+  "files": [
+    "app/Http/Livewire/Landing/Home.php",
+    "resources/views/livewire/landing/home.blade.php",
+    "app/Http/Livewire/Listing/Index.php",
+    "resources/views/livewire/listing/index.blade.php",
+    "app/Http/Livewire/Listing/Show.php",
+    "resources/views/livewire/components/help-modal.blade.php",
+    "app/Support/Stats/MarketplaceStats.php",
+    "routes/web.php",
+    "app/Policies/ListingPolicy.php",
+    "resources/views/components/site/footer.blade.php",
+    "resources/views/components/site/header.blade.php"
+  ],
+  "acceptance_tests": [
+    "Guest sees landing sections and clicking a listing redirects to /register",
+    "Category link filters /listings by ?category=slug",
+    "LIST ITEM CTA redirects guests to /register and authed users to /listings/create",
+    "Help ? opens modal with content",
+    "Stats show real values and update when cache clears",
+    "Page is CLS-safe and passes Lighthouse perf >= 90"
+  ],
+  "estimates": { "dev_hours": 8 },
+  "dependencies": [
+    "Filament v3 installed and Tailwind configured",
+    "Models: Listing, Category, Transaction, Testimonial",
+    "Auth scaffolding (phone-first) in place or placeholder routes"
+  ],
+  "risks": [
+    "Filament components in public panel—styling drift",
+    "Stats queries heavy without caching",
+    "Phone-first auth flow not finalized may affect redirects"
+  ]
+}
